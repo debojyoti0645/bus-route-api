@@ -12,6 +12,7 @@ const attendanceRoutes = require("./routes/attendance");
 const reportRoutes = require("./routes/reports");
 const noticeRoutes = require("./routes/notices");
 const tripsRoutes = require("./routes/trips");
+const healthRoutes = require("./routes/health");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use("/api/staff/attendance", attendanceRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/notices", noticeRoutes);
 app.use("/api/trips", tripsRoutes);
+app.use("/api/health", healthRoutes);
 
 // 404 handler
 app.use((req, res, next) => {
