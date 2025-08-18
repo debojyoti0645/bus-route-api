@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { login, register, getMe } = require('../controllers/authController');
+const { login, register, getMe, checkAuth } = require('../controllers/authController');
 const verifyToken = require('../middlewares/auth');
 const checkRole = require('../middlewares/role');
 const { db } = require('../config/firebase');
@@ -30,5 +30,7 @@ const checkFirstUser = async (req, res, next) => {
 router.post('/login', login);
 router.post('/register', checkFirstUser, register);
 router.get('/me', verifyToken, getMe);
+// Add new route to check authentication status
+router.get('/check', verifyToken, checkAuth);
 
 module.exports = router;

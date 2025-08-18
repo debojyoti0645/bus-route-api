@@ -4,14 +4,18 @@ const { collection, query, where, getDocs } = require("firebase/firestore");
 
 const verifyToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ message: "Authentication token missing" });
-    }
+    // Check for token in different places
+    const token =
+      req.headers.authorization?.split(" ")[1] || // Bearer Token
+      req.cookies?.token || // Cookie
+      req.body.token || // Request Body
+      req.query.token; // Query Parameter
 
-    const token = authHeader.split(" ")[1];
     if (!token) {
-      return res.status(401).json({ message: "Authentication token missing" });
+      return res.status(401).json({
+        isLoggedIn: false,
+        message: "Authentication token missing",
+      });
     }
 
     const decodedToken = jwt.verify(
@@ -19,29 +23,43 @@ const verifyToken = async (req, res, next) => {
       process.env.JWT_SECRET || "your_jwt_secret"
     );
 
-    // The 'userId' from the JWT payload is the user's ID field (e.g., ADM001)
-    const userId = decodedToken.userId;
+    // Check token expiration
+    if (decodedToken.exp < Date.now() / 1000) {
+      return res.status(401).json({
+        isLoggedIn: false,
+        message: "Token has expired",
+      });
+    }
 
-    // We must now use a query to find the document with the matching 'id' field
+    // Get user data from database
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("id", "==", userId));
+    const q = query(usersRef, where("id", "==", decodedToken.userId));
     const userSnapshot = await getDocs(q);
 
     if (userSnapshot.empty) {
-      // No document found with the matching 'id' field
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({
+        isLoggedIn: false,
+        message: "User not found",
+      });
     }
 
-    // Get the first (and only) document from the query result
     const userDoc = userSnapshot.docs[0];
+    const userData = userDoc.data();
 
-    // We get the user's data and also their 'id' field
-    req.user = { docId: userDoc.id, ...userDoc.data() };
+    // Attach user data to request
+    req.user = {
+      docId: userDoc.id,
+      ...userData,
+      isLoggedIn: true,
+    };
 
     next();
   } catch (error) {
     console.error(error);
-    res.status(401).json({ message: "Invalid or expired token" });
+    res.status(401).json({
+      isLoggedIn: false,
+      message: "Invalid or expired token",
+    });
   }
 };
 

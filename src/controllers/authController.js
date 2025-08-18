@@ -46,7 +46,7 @@ const login = async (req, res) => {
     const token = jwt.sign(
       { userId: user.id, role: user.role, name: user.name },
       process.env.JWT_SECRET || "your_jwt_secret",
-      { expiresIn: "12h" }
+      { expiresIn: "24h" }
     );
 
     res.json({ token, role: user.role, userId: user.id });
@@ -78,8 +78,32 @@ const getMe = async (req, res) => {
   }
 };
 
+const checkAuth = async (req, res) => {
+  try {
+    // If middleware passed, user is authenticated
+    const userData = {
+      isLoggedIn: true,
+      id: req.user.id,
+      name: req.user.name,
+      role: req.user.role,
+      phone: req.user.phone,
+      status: req.user.status,
+      assignedBuses: req.user.assignedBuses || [],
+    };
+
+    res.json(userData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      isLoggedIn: false,
+      message: "Server error",
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
+  checkAuth, // Add this to exports
 };
